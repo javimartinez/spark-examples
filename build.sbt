@@ -5,12 +5,15 @@
 lazy val `spark-examples` =
   project
     .in(file("."))
-    .enablePlugins(AutomateHeaderPlugin, GitVersioning)
+    .enablePlugins(GitVersioning)
     .settings(settings)
     .settings(
       libraryDependencies ++= Seq(
+        library.sparkCore,
+        library.sparkSql,
+        library.cassandraConnector,
         library.scalaCheck % Test,
-        library.scalaTest  % Test
+        library.scalaTest % Test
       )
     )
 
@@ -20,13 +23,20 @@ lazy val `spark-examples` =
 
 lazy val library =
   new {
+
     object Version {
       val scalaCheck = "1.13.4"
-      val scalaTest  = "3.0.1"
+      val scalaTest = "3.0.1"
+      val sparkVersion = "2.1.0"
     }
+
     val scalaCheck = "org.scalacheck" %% "scalacheck" % Version.scalaCheck
-    val scalaTest  = "org.scalatest"  %% "scalatest"  % Version.scalaTest
-}
+    val scalaTest = "org.scalatest" %% "scalatest" % Version.scalaTest
+    val sparkCore = "org.apache.spark" %% "spark-core" % Version.sparkVersion
+    val sparkSql = "org.apache.spark" %% "spark-sql" % Version.sparkVersion
+    val cassandraConnector = "com.datastax.spark" %% "spark-cassandra-connector" % "2.0.0"
+
+  }
 
 // *****************************************************************************
 // Settings
@@ -34,13 +44,12 @@ lazy val library =
 
 lazy val settings =
   commonSettings ++
-  scalafmtSettings ++
-  gitSettings ++
-  headerSettings
+    scalafmtSettings ++
+    gitSettings
 
 lazy val commonSettings =
   Seq(
-    scalaVersion := "2.12.1",
+    scalaVersion := "2.11.8",
     crossScalaVersions := Seq(scalaVersion.value, "2.11.8"),
     organization := "com.jmartinez",
     scalacOptions ++= Seq(
@@ -58,31 +67,19 @@ lazy val commonSettings =
       Seq(scalaSource.in(Compile).value),
     unmanagedSourceDirectories.in(Test) :=
       Seq(scalaSource.in(Test).value)
-)
+  )
 
 lazy val scalafmtSettings =
   reformatOnCompileSettings ++
-  Seq(
-    formatSbtFiles := false,
-    scalafmtConfig :=
-      Some(baseDirectory.in(ThisBuild).value / ".scalafmt.conf"),
-    ivyScala :=
-      ivyScala.value.map(_.copy(overrideScalaVersion = sbtPlugin.value)) // TODO Remove once this workaround no longer needed (https://github.com/sbt/sbt/issues/2786)!
-  )
+    Seq(
+      formatSbtFiles := false,
+      scalafmtConfig :=
+        Some(baseDirectory.in(ThisBuild).value / ".scalafmt.conf"),
+      ivyScala :=
+        ivyScala.value.map(_.copy(overrideScalaVersion = sbtPlugin.value)) // TODO Remove once this workaround no longer needed (https://github.com/sbt/sbt/issues/2786)!
+    )
 
 lazy val gitSettings =
   Seq(
     git.useGitDescribe := true
-  )
-
-import de.heikoseeberger.sbtheader.HeaderPattern
-import de.heikoseeberger.sbtheader.license.Apache2_0
-lazy val headerSettings =
-  Seq(
-    headers := Map(
-      "scala" -> (HeaderPattern.cStyleBlockComment,
-                  """|/*
-                     | * Copyright year author
-                     | */""".stripMargin)
-    )
   )
