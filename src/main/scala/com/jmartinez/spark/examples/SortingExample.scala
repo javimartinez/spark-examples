@@ -1,10 +1,14 @@
 package com.jmartinez.spark.examples
 
 import scala.util.Random
-
-import org.apache.log4j.{Level, Logger}
-
-import org.apache.spark.{Partitioner, SparkConf, SparkContext}
+import org.apache.log4j.{ Level, Logger }
+import org.apache.spark.rdd.RDD
+import org.apache.spark.{
+  HashPartitioner,
+  Partitioner,
+  SparkConf,
+  SparkContext
+}
 
 case class Foo(id: String, id2: String, seq: Int, data: String)
 
@@ -32,28 +36,28 @@ object SortingSpark {
     Logger.getLogger("akka").setLevel(Level.OFF)
 
     val conf = new SparkConf().setAppName("spark-example").setMaster("local")
-    val sc = new SparkContext(conf)
+    val sc   = new SparkContext(conf)
 
     val list = generateFoo(
       50,
       List(("key1", "2"),
-        ("key1", "1"),
-        ("key1", "4"),
-        ("key2", "3"),
-        ("key2", "2"),
-        ("key3", "1"),
-        ("key3", "zzz"))
+           ("key1", "1"),
+           ("key1", "4"),
+           ("key2", "3"),
+           ("key2", "2"),
+           ("key3", "1"),
+           ("key3", "zzz"))
     )
 
-    sc.parallelize(list, 5)
+     sc.parallelize(list, 5)
       .keyBy(f => FooKey(f.id, f.id2, f.seq))
       .repartitionAndSortWithinPartitions(new CustomPartitioner(5))
       .mapPartitionsWithIndex {
         case (index, it) =>
-          it.foreach(f => println(s"$index $f}")) // to see the ordering within each partition
-          it
+          it.map(f => s"$index $f}")
       }
-      .count()
+    .collect()
+    .foreach(println)
   }
 
   def generateFoo(numItems: Int, keys: List[(String, String)]): List[Foo] =
